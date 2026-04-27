@@ -10,6 +10,9 @@ title = "HTMSpell Configuration"
 [search]
 html_elements = ["p", "td", "th"]
 
+[cleaning]
+enclitics = ["'ll", "'re", "'d", "'s", "'ve"]
+
 [main-dictionary]
 path = "/usr/share/dict/words"
 fallback = "/usr/dict/words"

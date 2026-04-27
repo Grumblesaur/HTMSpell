@@ -27,6 +27,12 @@ def make_argument_parser():
                              " When not selected, interactive mode is used.")
     using_group.add_argument('-a', '--all', '--using-all', action='store_true',
                              help='Use all dictionaries specified by config file.')
+    provisions.add_argument('-d', '--dehyphenate', action='store_true',
+                            help="Spell check hyphenated words by their component parts.")
+    provisions.add_argument('-k', '--ignore-enclitics', action='store_true',
+                            help="Remove certain enclitics and spell check base lemmas.")
+    provisions.add_argument('-s', '--enclitics', action="store",
+                            help="Override config file enclitics.")
     return parser
 
 
@@ -75,21 +81,25 @@ def dictionary_menu(dictionaries: list[dict]) -> list[Path]:
     menu = {d['name']: d['path'] for d in dictionaries}
     index_map = dict(enumerate(sorted(menu.keys()), start=1))
     selected = None
-    while not selected:
+    while selected is None:
         print("Configured dictionaries:")
         largest_index = max(index_map.keys())
         padded_size = len(str(largest_index))
         for index, name in index_map.items():
             item_number = str(index).rjust(padded_size, ' ')
             print(f'  {item_number}) {name}')
-        captured = input('Enter dictionary numbers to use, separating multiple selections with commas: ')
-        try:
-            item_numbers = set(parse_selection(captured))
-            valid_selection(item_numbers, set(index_map.keys()))
-        except (TypeError, ValueError) as e:
-            print(f"{e!s}. Try again.\n")
-            continue
-        selected = list(item_numbers)
+        captured = input('Enter the numbers for additional dictionaries to use, separating multiple\n'
+                         'selections with commas (or leave blank for none): ')
+        if not captured.strip():
+            selected = []
+        else:
+            try:
+                item_numbers = set(parse_selection(captured))
+                valid_selection(item_numbers, set(index_map.keys()))
+            except (TypeError, ValueError) as e:
+                print(f"{e!s}. Try again.\n")
+                continue
+            selected = list(item_numbers)
         print()
     selected_names = [index_map[x] for x in selected]
     print("Dictionaries selected:", ", ".join(sorted(selected_names)))
@@ -102,7 +112,8 @@ def main_dictionary_path(config: dict) -> Path:
         return first
     if (fallback := Path(config['main-dictionary']['fallback'])).exists():
         return fallback
-    raise FileNotFoundError("Neither `path` nor `fallback` contain a valid path. Check your configuration file.")
+    raise FileNotFoundError("Neither `path` nor `fallback` contains a valid path to a dictionary."
+                            " Check your configuration file.")
 
 
 def check(namespace: argparse.Namespace):
@@ -111,27 +122,31 @@ def check(namespace: argparse.Namespace):
         elements = namespace.elements.split(',')
     else:
         elements = config['search']['html_elements']
-
-    if namespace.using is None and namespace.using_all is None:
-        extra_dictionaries = dictionary_menu(config['dictionaries']) if 'dictionaries' in config else []
-    elif namespace.using_all:
-        extra_dictionaries = [d['path'] for d in config['dictionaries']]
+    dictionaries = [main_dictionary_path(config)]
+    if namespace.all:
+        dictionaries.extend(d['path'] for d in config['dictionaries'])
+    elif namespace.using is None:
+        dictionaries.extend(dictionary_menu(config['dictionaries']) if 'dictionaries' in config else [])
     else:
-        extra_dictionaries = []
+        dictionaries = []
         for name in namespace.using.split(','):
             for dictionary in config['dictionaries']:
                 if dictionary['name'] == name:
-                    extra_dictionaries.append(dictionary)
+                    dictionaries.append(dictionary['path'])
+                    break
             else:
                 raise ValueError(f'no dictionary named {name} in config file.')
 
+    enclitics = namespace.enclitics or config.get('cleaning', {}).get('enclitics', [])
 
-    md = main_dictionary_path(config)
-    sc = SpellChecker(md, elements, *extra_dictionaries)
+    sc = SpellChecker(dictionaries, elements)
     for filename in namespace.filenames:
         print(str(filename))
         try:
-            typos = sc.check_spelling(filename)
+            typos = sc.check_spelling(filename,
+                                      enclitics=enclitics,
+                                      dehyphenate=namespace.dehyphenate,
+                                      ignore_enclitics=namespace.ignore_enclitics)
         except FileNotFoundError as e:
             print(f"  {e!s}")
         else:

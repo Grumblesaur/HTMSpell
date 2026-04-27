@@ -1,8 +1,9 @@
 import functools
+import re
 import string
 from enum import IntEnum
 from pathlib import Path
-from typing import Self
+from typing import Self, Iterable
 
 from bs4 import BeautifulSoup
 
@@ -57,20 +58,26 @@ class Typo:
         return NotImplemented
 
 
-def tokenize(text: str) -> list[str]:
+def tokenize(text: str, **kwargs) -> list[str]:
     words = []
+    dash = re.compile('[—-]') if kwargs.get('dehyphenate') else re.compile('—')
     for raw_token in text.split():
-        if '—' in raw_token:
-            for subtoken in raw_token.split('—'):
+        if dash.search(raw_token):
+            for subtoken in dash.split(raw_token):
                 if subtoken.strip():
                     words.append(subtoken)
         else:
             words.append(raw_token)
 
     cleaned = []
+    enclitics = kwargs.get('enclitics', [])
     for word in words:
-        if cleaned_word := word.strip(string.punctuation):
-            cleaned.append(cleaned_word)
+        if not (cleaned_word := word.strip(string.punctuation)):
+            continue
+        for enc in enclitics:
+            if word.endswith(enc):
+                word.removesuffix(enc)
+                break
     return cleaned
 
 
@@ -82,26 +89,25 @@ def lines_from(file: Path) -> set[str]:
 class SpellChecker:
     problems = {Lookup.NotFound, Lookup.FoundCapitalized, Lookup.FoundAllCaps}
 
-    def __init__(self, words_path: Path, elements: set[str], *extra_words_paths: Path):
+    def __init__(self, word_sources: Iterable[Path], elements: set[str]):
         self.elements = elements
-        self.words = lines_from(words_path)
-        self.extra_words = set()
-        for ewp in extra_words_paths:
-            self.extra_words |= lines_from(ewp)
+        self.words = set()
+        for ws in word_sources:
+            self.words.update(lines_from(ws))
 
     def check_word(self, word: str) -> Lookup:
-        if word in self.words or word in self.extra_words:
+        if word in self.words or word:
             return Lookup.ExactMatch
-        if (cf := word.casefold()) in self.words or cf in self.extra_words:
+        if word.casefold() in self.words:
             return Lookup.FoundCasefolded
-        if (cp := word.capitalize()) in self.words or cp in self.extra_words:
+        if word.capitalize() in self.words:
             return Lookup.FoundCapitalized
-        if (up := word.upper()) in self.words or up in self.extra_words:
+        if word.upper() in self.words:
             return Lookup.FoundAllCaps
         return Lookup.NotFound
 
 
-    def check_spelling(self, html_file: Path) -> list[Typo]:
+    def check_spelling(self, html_file: Path, **options) -> list[Typo]:
         with open(html_file, 'r', encoding='utf-8') as f:
             soup = BeautifulSoup(f.read(), 'html.parser')
 
@@ -109,7 +115,7 @@ class SpellChecker:
         for st in self.elements:
             source_passages = soup.find_all(st)
             for k, sp in enumerate(source_passages, start=1):
-                words = tokenize(sp.text)
+                words = tokenize(sp.text, **options)
                 for word in words:
                     if (result := self.check_word(word)) in self.problems:
                         typos.append(Typo(st, k, word, result))
