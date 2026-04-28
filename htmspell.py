@@ -20,7 +20,7 @@ def make_argument_parser():
                                                  description="Information supplied to enable spell checking.")
     provisions.add_argument('-c', '--config', nargs=1, action="store", type=Path)
     provisions.add_argument('-e', '--elements', type=str,
-                            help="comma-separated list of HTML elements to check")
+                            help="A comma-separated list of HTML element types to check.")
     using_group = provisions.add_mutually_exclusive_group()
     using_group.add_argument('-u', '--using', action='store',
                              help="Select additional dictionaries by name, separated by columns."
@@ -32,7 +32,7 @@ def make_argument_parser():
     provisions.add_argument('-k', '--ignore-enclitics', action='store_true',
                             help="Remove certain enclitics and spell check base lemmas.")
     provisions.add_argument('-s', '--enclitics', action="store",
-                            help="Override config file enclitics.")
+                            help="Override config file enclitics with comma-separated strings.")
     return parser
 
 
