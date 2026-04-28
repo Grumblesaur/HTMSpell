@@ -58,27 +58,31 @@ class Typo:
         return NotImplemented
 
 
-def tokenize(text: str, **kwargs) -> list[str]:
-    words = []
-    dash = re.compile('[—-]') if kwargs.get('dehyphenate') else re.compile('—')
-    for raw_token in text.split():
-        if dash.search(raw_token):
-            for subtoken in dash.split(raw_token):
-                if subtoken.strip():
-                    words.append(subtoken)
-        else:
-            words.append(raw_token)
+def tokenize(text: str) -> Iterable[str]:
+    yield from text.split()
 
-    cleaned = []
-    enclitics = kwargs.get('enclitics', [])
-    for word in words:
-        if not (cleaned_word := word.strip(string.punctuation)):
-            continue
+def dehyphenate(tokens: Iterable[str], **kwargs) -> Iterable[str]:
+    regex_str = r'[—-]' if kwargs.get('dehyphenate') else r'—'
+    dash = re.compile(regex_str)
+    for token in tokens:
+        if dash.search(token):
+            yield from (subtoken for subtoken in dash.split(token) if subtoken)
+        else:
+            yield token
+
+def remove_enclitics(tokens: Iterable[str], **kwargs) -> Iterable[str]:
+    if not (enclitics := kwargs.get('enclitics')):
+        yield from tokens
+    for token in tokens:
         for enc in enclitics:
-            if word.endswith(enc):
-                word.removesuffix(enc)
+            if token.endswith(enc):
+                yield token.removesuffix(enc)
                 break
-    return cleaned
+        else:
+            yield token
+
+def clean(tokens: Iterable[str]) -> Iterable[str]:
+    return (t.strip(string.punctuation+' ') for t in tokens)
 
 
 def lines_from(file: Path) -> set[str]:
@@ -89,14 +93,14 @@ def lines_from(file: Path) -> set[str]:
 class SpellChecker:
     problems = {Lookup.NotFound, Lookup.FoundCapitalized, Lookup.FoundAllCaps}
 
-    def __init__(self, word_sources: Iterable[Path], elements: set[str]):
+    def __init__(self, word_sources: set[Path], elements: set[str]):
         self.elements = elements
         self.words = set()
         for ws in word_sources:
             self.words.update(lines_from(ws))
 
     def check_word(self, word: str) -> Lookup:
-        if word in self.words or word:
+        if word in self.words:
             return Lookup.ExactMatch
         if word.casefold() in self.words:
             return Lookup.FoundCasefolded
@@ -115,8 +119,11 @@ class SpellChecker:
         for st in self.elements:
             source_passages = soup.find_all(st)
             for k, sp in enumerate(source_passages, start=1):
-                words = tokenize(sp.text, **options)
-                for word in words:
+                words = tokenize(sp.text)
+                dehyphenated = dehyphenate(words, **options)
+                deencliticized = remove_enclitics(dehyphenated, **options)
+                cleaned = clean(deencliticized)
+                for word in filter(bool, cleaned):
                     if (result := self.check_word(word)) in self.problems:
-                        typos.append(Typo(st, k, word, result))
+                        typos.append(x := Typo(st, k, word, result))
         return typos

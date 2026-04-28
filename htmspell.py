@@ -128,7 +128,6 @@ def check(namespace: argparse.Namespace):
     elif namespace.using is None:
         dictionaries.extend(dictionary_menu(config['dictionaries']) if 'dictionaries' in config else [])
     else:
-        dictionaries = []
         for name in namespace.using.split(','):
             for dictionary in config['dictionaries']:
                 if dictionary['name'] == name:
@@ -139,11 +138,12 @@ def check(namespace: argparse.Namespace):
 
     enclitics = namespace.enclitics or config.get('cleaning', {}).get('enclitics', [])
 
-    sc = SpellChecker(dictionaries, elements)
+    sc = SpellChecker(set(dictionaries), elements)
+    here = Path(os.getcwd())
     for filename in namespace.filenames:
-        print(str(filename))
+        print(absolute := here / filename)
         try:
-            typos = sc.check_spelling(filename,
+            typos = sc.check_spelling(absolute,
                                       enclitics=enclitics,
                                       dehyphenate=namespace.dehyphenate,
                                       ignore_enclitics=namespace.ignore_enclitics)
