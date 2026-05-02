@@ -224,10 +224,10 @@ def count(namespace: argparse.Namespace):
 
 
 def show(namespace: argparse.Namespace):
-    print(namespace.filename)
     d = DOM(namespace.filename)
     if namespace.location:
-        print(d.get(namespace.element, namespace.index))
+        el, ind = namespace.location
+        print(d.get(el, ind))
     else:
         for index in namespace.index:
             print(d.get(namespace.element, index), end="\n\n")
