@@ -59,13 +59,13 @@ class DOM:
 
     def get(self, element_type: str, index: int) -> Tag:
         elist = self.soup.find_all(element_type)
+        if len(elist) < index or index < 1:
+            raise IndexError(f'invalid index: {index}; must be 1 or greater')
         try:
             return elist[index - 1]
         except IndexError:
             if not elist:
                 raise IndexError(f"no elements of type `{element_type}")
-            if index < 1:
-                raise IndexError(f'invalid index: {index}; must be 1 or greater')
             raise IndexError(f'attempted to index {element_type}.{index},'
                              + f' but only {len(elist)} `{element_type}`s are present')
 
