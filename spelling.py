@@ -1,11 +1,11 @@
 import functools
-import re
-import string
 from enum import IntEnum
 from pathlib import Path
-from typing import Self, Iterable
+from typing import Self
 
 from bs4 import BeautifulSoup
+
+from utils import tokenize, dehyphenate, remove_enclitics, ignore_capitalized, clean
 
 
 class Lookup(IntEnum):
@@ -58,33 +58,6 @@ class Typo:
         return NotImplemented
 
 
-def tokenize(text: str) -> Iterable[str]:
-    yield from text.split()
-
-def dehyphenate(tokens: Iterable[str], **kwargs) -> Iterable[str]:
-    regex_str = r'[—-]' if kwargs.get('dehyphenate') else r'—'
-    dash = re.compile(regex_str)
-    for token in tokens:
-        if dash.search(token):
-            yield from (subtoken for subtoken in dash.split(token) if subtoken)
-        else:
-            yield token
-
-def remove_enclitics(tokens: Iterable[str], **kwargs) -> Iterable[str]:
-    if not (enclitics := kwargs.get('enclitics')):
-        yield from tokens
-    for token in tokens:
-        for enc in enclitics:
-            if token.endswith(enc):
-                yield token.removesuffix(enc)
-                break
-        else:
-            yield token
-
-def clean(tokens: Iterable[str]) -> Iterable[str]:
-    return (t.strip(string.punctuation+' ') for t in tokens)
-
-
 def lines_from(file: Path) -> set[str]:
     with open(file, 'r', encoding='utf-8') as f:
         return set(f.read().splitlines())
@@ -121,7 +94,8 @@ class SpellChecker:
             for k, sp in enumerate(source_passages, start=1):
                 words = tokenize(sp.text)
                 dehyphenated = dehyphenate(words, **options)
-                deencliticized = remove_enclitics(dehyphenated, **options)
+                caps_filtered = ignore_capitalized(dehyphenated, **options)
+                deencliticized = remove_enclitics(caps_filtered, **options)
                 cleaned = clean(deencliticized)
                 for word in filter(bool, cleaned):
                     if (result := self.check_word(word)) in self.problems:

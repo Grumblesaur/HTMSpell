@@ -2,7 +2,7 @@ import tomllib
 import os
 from pathlib import Path
 
-TOML_DEFAULT_NAME = "htmspell.toml"
+TOML_DEFAULT_NAME = "htmslspell.toml"
 ENV_KEY = "HTMSPELL_CONFIG"
 TOML_DEFAULT = """
 title = "HTMSpell Configuration"

@@ -1,9 +1,23 @@
 import argparse
+from collections import Counter
+
 import configuration
 import os
 import sys
 from pathlib import Path
 from spelling import SpellChecker
+from document import DOM
+
+def location(s: str) -> tuple[str, int]:
+    try:
+        element, index = s.split('.')
+    except ValueError:
+        raise ValueError('`--location` argument must take the form `element.index` (e.g. `p.7`)')
+    return element, int(index)
+
+
+def indices(s: str) -> list[int]:
+    return [int(x) for x in s.split(',')]
 
 
 def make_argument_parser():
@@ -33,6 +47,25 @@ def make_argument_parser():
                             help="Remove certain enclitics and spell check base lemmas.")
     provisions.add_argument('-s', '--enclitics', action="store",
                             help="Override config file enclitics with comma-separated strings.")
+    provisions.add_argument('-i', '--ignore-capitalized', action="store_true",
+                            help="Skip proper nouns and other capitalized words.")
+    count_parser = subparsers.add_parser('count')
+    count_parser.add_argument('filenames', nargs='+', type=Path)
+    count_parser.add_argument('-d', '--dehyphenate', action='store_true',
+                              help="Count hyphenated words by their component parts.")
+    count_parser.add_argument('-e', '--elements', type=str,
+                              help="A comma-separated list of HTML element types to check")
+
+    show_parser = subparsers.add_parser('show')
+    show_parser.add_argument('filename', type=Path)
+    show_parser.add_argument('-e', '--element', type=str,
+                             help="A single type of HTML element.")
+    show_parser.add_argument('-i', '--index', '--indices', type=indices,
+                           help="Comma-separated series of element numbers to display.")
+    show_parser.add_argument('-l', '--location', '--loc', type=location,
+                                help="Compact form for locating a single element, using the same syntax"
+                                     + " as the output of `check` and `count` commands, e.g. `p.7` or"
+                                     + " td.12")
     return parser
 
 
@@ -44,6 +77,10 @@ def main():
             configure(namespace)
         case 'check':
             check(namespace)
+        case 'count':
+            count(namespace)
+        case 'show':
+            show(namespace)
 
 
 def configure(namespace: argparse.Namespace):
@@ -146,12 +183,56 @@ def check(namespace: argparse.Namespace):
             typos = sc.check_spelling(absolute,
                                       enclitics=enclitics,
                                       dehyphenate=namespace.dehyphenate,
-                                      ignore_enclitics=namespace.ignore_enclitics)
+                                      ignore_enclitics=namespace.ignore_enclitics,
+                                      ignore_capitalized=namespace.ignore_capitalized)
         except FileNotFoundError as e:
             print(f"  {e!s}")
         else:
             for t in typos:
                 print(f'  {t!s}')
+
+def count(namespace: argparse.Namespace):
+    total_words = 0
+    total_elements = Counter()
+    total_unpaired = 0
+    for filename in namespace.filenames:
+        print(filename)
+        d = DOM(filename)
+        word_count = d.count_words(dehyphenate=namespace.dehyphenate)
+        element_counts = d.count_elements(elements=namespace.elements)
+        unpaired_characters = d.unpaired_characters(elements=namespace.elements)
+        print(f'  words: {word_count}')
+        print('  elements of interest:')
+        for element_type, c in element_counts.most_common():
+            print(f'    {element_type}: {c}')
+        if unpaired_characters:
+            total_unpaired += len(unpaired_characters)
+            print('  unpaired characters:')
+            for etype, eindex, char in unpaired_characters:
+                print(f'    {etype}.{eindex}: {char}')
+        total_words += word_count
+        total_elements += element_counts
+        print()
+
+    if len(namespace.filenames) > 1:
+        print('Overall:')
+        print(f'  words: {total_words}')
+        print('  elements of interest:')
+        for element_type, c in total_elements.most_common():
+            print(f'    {element_type}: {c}')
+    return
+
+
+def show(namespace: argparse.Namespace):
+    print(namespace.filename)
+    d = DOM(namespace.filename)
+    if namespace.location:
+        print(d.get(namespace.element, namespace.index))
+    else:
+        for index in namespace.index:
+            print(d.get(namespace.element, index), end="\n\n")
+
+
 
 if __name__ == '__main__':
     main()
