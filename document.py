@@ -1,3 +1,6 @@
+import re
+from enum import StrEnum
+
 import utils
 from pathlib import Path
 from bs4 import BeautifulSoup, Tag
@@ -33,6 +36,14 @@ class DOM:
             for _ in self.soup.find_all(e):
                 c[e] += 1
         return c
+
+    def count_instance_of(self, regex: re.Pattern, elements: set[str] = None) -> int:
+        elements = elements or {'p'}
+        instances = 0
+        for element in elements:
+            for n, e in enumerate(self.soup.find_all(element), start=1):
+                instances += sum(1 for _ in regex.finditer(e.text))
+        return instances
 
     def unpaired_characters(self, elements: set[str] = None):
         elements = elements or {'p'}

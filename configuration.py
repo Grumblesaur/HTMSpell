@@ -66,3 +66,12 @@ def load_config(from_path: Path = None) -> dict:
 
     with open(load_path, 'rb') as f:
         return tomllib.load(f)
+
+
+def main_dictionary_path(config: dict) -> Path:
+    if (first := Path(config['main-dictionary']['path'])).exists():
+        return first
+    if (fallback := Path(config['main-dictionary']['fallback'])).exists():
+        return fallback
+    raise FileNotFoundError("Neither `path` nor `fallback` contains a valid path to a dictionary."
+                            " Check your configuration file.")

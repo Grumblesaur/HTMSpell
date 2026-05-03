@@ -5,31 +5,31 @@ from typing import Self
 
 from bs4 import BeautifulSoup
 
-from utils import tokenize, dehyphenate, remove_enclitics, ignore_capitalized, clean
+import utils
 
 
-class Lookup(IntEnum):
+class EntryMatch(IntEnum):
     NotFound = 0
-    ExactMatch = 1
-    FoundCasefolded = 2
-    FoundCapitalized = 3
-    FoundAllCaps = 4
+    Exact = 1
+    Casefolded = 2
+    Capitalized = 3
+    AllCaps = 4
 
     def note(self):
         if self is self.NotFound:
             return "no matching entry"
-        if self is self.FoundCasefolded:
+        if self is self.Casefolded:
             return "matching entry when lowercase"
-        if self is self.FoundCapitalized:
+        if self is self.Capitalized:
             return "matching entry when Capitalized"
-        if self is self.FoundAllCaps:
+        if self is self.AllCaps:
             return "matching entry when ALLCAPS"
         return ""
 
 
 @functools.total_ordering
 class Typo:
-    def __init__(self, source_type: str, n: int, problem: str, lookup: Lookup):
+    def __init__(self, source_type: str, n: int, problem: str, lookup: EntryMatch):
         self.source_type = source_type
         self.n = n
         self.problem = problem
@@ -54,6 +54,7 @@ class Typo:
 
     def __lt__(self, other: Self) -> bool:
         if isinstance(other, self.__class__):
+            # noinspection PyTypeChecker
             return self._key() < other._key()
         return NotImplemented
 
@@ -64,24 +65,26 @@ def lines_from(file: Path) -> set[str]:
 
 
 class SpellChecker:
-    problems = {Lookup.NotFound, Lookup.FoundCapitalized, Lookup.FoundAllCaps}
+    default_problems = {EntryMatch.NotFound, EntryMatch.Capitalized, EntryMatch.AllCaps}
 
-    def __init__(self, word_sources: set[Path], elements: set[str]):
+    def __init__(self, word_sources: set[Path], elements: set[str], problems: set[EntryMatch] = None):
         self.elements = elements
         self.words = set()
+        self.problems = problems or self.default_problems
         for ws in word_sources:
             self.words.update(lines_from(ws))
 
-    def check_word(self, word: str) -> Lookup:
+    def check_word(self, word: str) -> EntryMatch:
+        """Return a result of type"""
         if word in self.words:
-            return Lookup.ExactMatch
+            return EntryMatch.Exact
         if word.casefold() in self.words:
-            return Lookup.FoundCasefolded
+            return EntryMatch.Casefolded
         if word.capitalize() in self.words:
-            return Lookup.FoundCapitalized
+            return EntryMatch.Capitalized
         if word.upper() in self.words:
-            return Lookup.FoundAllCaps
-        return Lookup.NotFound
+            return EntryMatch.AllCaps
+        return EntryMatch.NotFound
 
 
     def check_spelling(self, html_file: Path, **options) -> list[Typo]:
@@ -92,12 +95,12 @@ class SpellChecker:
         for st in self.elements:
             source_passages = soup.find_all(st)
             for k, sp in enumerate(source_passages, start=1):
-                words = tokenize(sp.text)
-                dehyphenated = dehyphenate(words, **options)
-                caps_filtered = ignore_capitalized(dehyphenated, **options)
-                deencliticized = remove_enclitics(caps_filtered, **options)
-                cleaned = clean(deencliticized)
+                words = utils.tokenize(sp.text)
+                dehyphenated = utils.dehyphenate(words, **options)
+                caps_filtered = utils.ignore_capitalized(dehyphenated, **options)
+                deencliticized = utils.remove_enclitics(caps_filtered, **options)
+                cleaned = utils.clean(deencliticized)
                 for word in filter(bool, cleaned):
                     if (result := self.check_word(word)) in self.problems:
-                        typos.append(x := Typo(st, k, word, result))
+                        typos.append(Typo(st, k, word, result))
         return typos

@@ -44,3 +44,20 @@ def ignore_capitalized(tokens: Iterable[str], **kwargs) -> Iterable[str]:
 
 def clean(tokens: Iterable[str]) -> Iterable[str]:
     return (t.strip(string.punctuation+' ') for t in tokens)
+
+
+def parse_selection(s: str) -> list[int]:
+    item_numbers = []
+    for selection in s.split(','):
+        if (n := selection.strip()).isdigit():
+            item_numbers.append(int(n))
+        else:
+            raise TypeError(f"Cannot parse int from {selection!r}")
+    return item_numbers
+
+
+def valid_selection(v: set[int], valid: set[int]) -> bool:
+    for x in v:
+        if x not in valid:
+            raise ValueError(f"No dictionary correspond to {x!r}")
+    return True
