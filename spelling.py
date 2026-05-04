@@ -75,7 +75,8 @@ class SpellChecker:
             self.words.update(lines_from(ws))
 
     def check_word(self, word: str) -> EntryMatch:
-        """Return a result of type"""
+        """Return a result of type EntryMatch based on `word`'s presence
+        (or absence) in our dictionaries."""
         if word in self.words:
             return EntryMatch.Exact
         if word.casefold() in self.words:
