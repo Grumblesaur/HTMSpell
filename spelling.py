@@ -1,5 +1,5 @@
 import functools
-from enum import IntEnum
+from enum import StrEnum
 from pathlib import Path
 from typing import Self
 
@@ -8,12 +8,12 @@ from bs4 import BeautifulSoup
 import utils
 
 
-class EntryMatch(IntEnum):
-    NotFound = 0
-    Exact = 1
-    Casefolded = 2
-    Capitalized = 3
-    AllCaps = 4
+class EntryMatch(StrEnum):
+    NotFound = 'NotFound'
+    Exact = 'Exact'
+    Casefolded = 'Casefolded'
+    Capitalized = 'Capitalized'
+    AllCaps = 'AllCaps'
 
     def note(self):
         if self is self.NotFound:
@@ -26,6 +26,23 @@ class EntryMatch(IntEnum):
             return "matching entry when ALLCAPS"
         return ""
 
+    @classmethod
+    def from_string(cls, option: str) -> EntryMatch:
+        if option.casefold() == 'notfound':
+            return cls.NotFound
+        if option.casefold() == 'exact':
+            return cls.Exact
+        if option.casefold() == 'casefolded':
+            return cls.Casefolded
+        if option.casefold() == 'capitalized':
+            return cls.Capitalized
+        if option.casefold() == 'allcaps':
+            return cls.AllCaps
+        raise ValueError(f'unrecognized string: {option}')
+
+    @classmethod
+    def parse_problems(cls, problems: str) -> set[EntryMatch]:
+        return {cls.from_string(p) for p in problems.split(',')}
 
 @functools.total_ordering
 class Typo:

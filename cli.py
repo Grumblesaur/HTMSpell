@@ -43,6 +43,11 @@ def make_argument_parser():
                             help="Skip proper nouns and other capitalized words.")
     provisions.add_argument('-e', '--elements', type=str,
                             help="A comma-separated list of HTML element types to check.")
+    provisions.add_argument('-p', '--problems', '--problem', action='store', type=str,
+                            help=("Comma-separated list of choices of which matching conditions should be considered "
+                                 "spelling errors. Choices: NotFound, Casefolded, Capitalized, AllCaps. "
+                                 "Default configuration: NotFound,Capitalized,AllCaps"),
+                            default="NotFound,Capitalized,AllCaps")
     using_group.add_argument('-u', '--using', action='store',
                              help="Select additional dictionaries by name, separated by columns."
                              " When not selected, interactive mode is used.")

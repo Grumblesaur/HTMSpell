@@ -8,7 +8,7 @@ from pathlib import Path
 
 import cli
 from configuration import main_dictionary_path
-from spelling import SpellChecker
+from spelling import SpellChecker, EntryMatch
 from document import DOM
 from utils import parse_selection, valid_selection
 
@@ -100,8 +100,8 @@ def check(namespace: argparse.Namespace):
                 raise ValueError(f'no dictionary named {name} in config file.')
 
     enclitics = namespace.enclitics or config.get('cleaning', {}).get('enclitics', [])
-
-    sc = SpellChecker(set(dictionaries), elements)
+    problems = EntryMatch.parse_problems(namespace.problems)
+    sc = SpellChecker(set(dictionaries), elements, problems=problems)
     for filename in namespace.filenames:
         print(filename)
         try:
