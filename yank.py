@@ -17,6 +17,12 @@ def make_argument_parser():
                         type=int,
                         default=1,
                         help="Which in a series (1-indexed) of elements to yank.")
+    parser.add_argument('-v', '--verbose',
+                        action="store_true",
+                        help="Print the yanked selection to stdout.")
+    parser.add_argument('-x', '--no-copy',
+                        action="store_true",
+                        help="Don't copy the yanked selection to clipboard.")
     return parser
 
 
@@ -28,8 +34,11 @@ def main():
     if namespace.index < 1:
         raise ValueError(f'value of `-n/--index` must be greater than or equal to 1.')
     element = elements[namespace.index - 1]
-    subelements = [str(ch).strip() for ch in element.children]
-    pyperclip.copy('\n'.join(subelements))
+    out = '\n'.join(str(ch).strip() for ch in element.children)
+    if not namespace.no_copy:
+        pyperclip.copy(out)
+    if namespace.verbose:
+        print(out)
 
 
 if __name__ == '__main__':
