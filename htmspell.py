@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import cli
+import utils
 from configuration import main_dictionary_path
 from spelling import SpellChecker, EntryMatch
 from document import DOM
@@ -31,8 +32,10 @@ def main():
             count(namespace)
         case 'show':
             show(namespace)
+        case 'corpus':
+            corpus(namespace)
         case _:
-            raise Exception('unhandled subcommand: ', namespace.command)
+            raise Exception('unknown subcommand: ', namespace.command)
 
 
 def configure(namespace: argparse.Namespace):
@@ -154,6 +157,38 @@ def count(namespace: argparse.Namespace):
         if total_words is not None:
             print(f'  {namespace.regex.pattern!r} count: {total_searched}')
     return
+
+
+def corpus(namespace: argparse.Namespace):
+    overall_usage = Counter()
+    options = {'dehyphenate': namespace.dehyphenate,
+               'ignore_enclitics': namespace.ignore_enclitics}
+    predicate = lambda c: c != 0
+    if namespace.count_greater_than is not None:
+        predicate = lambda c: c > namespace.count_greater_than
+    if namespace.count_less_than is not None:
+        predicate = lambda c: c < namespace.count_less_than
+    if namespace.count_less_equal is not None:
+        predicate = lambda c: c <= namespace.count_less_equal
+    if namespace.count_greater_equal is not None:
+        predicate = lambda c: c >= namespace.count_greater_equal
+
+    print("Word usage for:")
+    for filename in namespace.filenames:
+        d = DOM(filename)
+        tokens = d.words(**options)
+        cleaned = utils.clean(tokens)
+        enclitic_normalized = utils.remove_enclitics(cleaned, **options)
+        casefolded = utils.casefolded(enclitic_normalized)
+        usage = Counter(casefolded)
+        overall_usage += usage
+        print(filename)
+    print("Frequencies:")
+    for word, freq in overall_usage.most_common():
+        if predicate(freq):
+            print(f'{word}: {freq}')
+
+
 
 
 def show(namespace: argparse.Namespace):

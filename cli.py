@@ -20,13 +20,14 @@ def make_argument_parser():
     subparsers = parser.add_subparsers(dest='command')
 
     # Configuration subparser
-    config_parser = subparsers.add_parser('config')
-    config_parser.add_argument('-n', '--new', action="store_true")
+    config_parser = subparsers.add_parser('config', help='Create a configuration file for this program')
+    config_parser.add_argument('-n', '--new', action="store_true",
+                               help="Create a new configuration file")
     config_parser.add_argument('-f', '--file', nargs=1, action="store", type=Path,
                                help="Specify a file path for `--new`.")
 
     # Spell checking subparser
-    check_parser = subparsers.add_parser('check')
+    check_parser = subparsers.add_parser('check', help='Check spelling')
     check_parser.add_argument('filenames', nargs='+', type=Path)
     provisions = check_parser.add_argument_group(title="Provisions",
                                                  description="Information supplied to enable spell checking, "
@@ -55,7 +56,8 @@ def make_argument_parser():
                              help='Use all dictionaries specified by config file.')
 
     # Word count subparser
-    count_parser = subparsers.add_parser('count')
+    count_parser = subparsers.add_parser('count',
+                                         help='Count words overall or specific instances of a particular word or regex')
     count_parser.add_argument('filenames', nargs='+', type=Path)
     count_parser.add_argument('-d', '--dehyphenate', action='store_true',
                               help="Count hyphenated words by their component parts.")
@@ -66,8 +68,27 @@ def make_argument_parser():
     count_parser.add_argument('-q', '--quiet', action='store_true',
                               help="Suppress intermediate outputs and only show the overall results.")
 
+    # Corpus linguistics subparser
+    corpus_parser = subparsers.add_parser('corpus', help="Check word counts for corpus linguistics purposes")
+    corpus_parser.add_argument('filenames', nargs='+', type=Path)
+    corpus_parser.add_argument('-d', '--dehyphenate', action='store_true',
+                               help="Count hyphenated words as their component parts")
+    corpus_parser.add_argument('-k', '--ignore-enclitics', action='store_true',
+                               help="Count lemmas with enclitics stripped off.")
+    corpus_thresholds = corpus_parser.add_mutually_exclusive_group()
+    corpus_thresholds.add_argument('-g', '--count-greater-than', type=int,
+                                   help='Show all words used more than `M` times')
+    corpus_thresholds.add_argument('-G', '--count-greater-equal', type=int,
+                                   help='Show all words used at least `M` times')
+    corpus_thresholds.add_argument('-l', '--count-less-than', type=int,
+                                   help="Show all words used less than `M` times")
+    corpus_thresholds.add_argument('-L', '--count-less-equal', type=int,
+                                   help="Show all words used no more than `M` times")
+
+
+
     # Element lookup subparser
-    show_parser = subparsers.add_parser('show')
+    show_parser = subparsers.add_parser('show', help="Display a portion of the DOM by element type and index")
     show_parser.add_argument('filename', type=Path)
     show_parser.add_argument('-e', '--element', type=str,
                              help="A single type of HTML element.")

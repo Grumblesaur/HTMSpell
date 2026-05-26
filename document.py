@@ -25,9 +25,12 @@ class DOM:
         with open(html_file, 'r', encoding='utf-8') as f:
             self.soup = BeautifulSoup(f, 'html.parser')
 
-    def count_words(self, **options) -> int:
+    def words(self, **options) -> Iterable[str]:
         body = self.soup.find('body')
-        return ilen(utils.dehyphenate(utils.tokenize(body.text), **options))
+        return utils.dehyphenate(utils.tokenize(body.text), **options)
+
+    def count_words(self, **options) -> int:
+        return ilen(self.words(**options))
 
     def count_elements(self, elements: set[str] = None) -> Counter[str]:
         elements = elements or {'p'}

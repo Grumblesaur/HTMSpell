@@ -61,3 +61,7 @@ def valid_selection(v: set[int], valid: set[int]) -> bool:
         if x not in valid:
             raise ValueError(f"No dictionary correspond to {x!r}")
     return True
+
+
+def casefolded(tokens: Iterable[str]) -> Iterable[str]:
+    yield from (s.casefold() for s in tokens)
