@@ -5,5 +5,6 @@ description = "Add your description here"
 requires-python = ">=3.14"
 dependencies = [
     "beautifulsoup4>=4.14.3",
+    "nuitka[all]>=4.1.2",
     "pyperclip==1.11.0",
 ]
