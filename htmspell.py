@@ -2,7 +2,6 @@ import argparse
 from collections import Counter
 
 import configuration
-import os
 import sys
 from pathlib import Path
 

@@ -2,7 +2,6 @@ import re
 import string
 from typing import Iterable
 
-
 def tokenize(text: str) -> Iterable[str]:
     yield from text.split()
 
@@ -42,8 +41,9 @@ def ignore_capitalized(tokens: Iterable[str], **kwargs) -> Iterable[str]:
         yield token
 
 
+STRIPPABLE = string.punctuation + " ”“’‘"
 def clean(tokens: Iterable[str]) -> Iterable[str]:
-    return (t.strip(string.punctuation+' “”‘’') for t in tokens)
+    return (t.strip(STRIPPABLE) for t in tokens)
 
 
 def parse_selection(s: str) -> list[int]:
