@@ -40,7 +40,7 @@ def main():
 
 def configure(namespace: argparse.Namespace):
     if namespace.new:
-        new_config_file = configuration.make_default(namespace.file or Path(os.getcwd()))
+        new_config_file = configuration.make_default(namespace.file)
         print(f"New configuration file created: {new_config_file!s}")
         print("If this file will be your preferred HTMSpell configuration, you should "
               "set the environment variable `HTMSPELL_CONFIG` to its path.")

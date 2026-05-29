@@ -36,7 +36,8 @@ fallback = "/usr/dict/words"
 """
 
 
-def make_default(directory: Path) -> Path:
+def make_default(directory: Path | None) -> Path:
+    directory = directory or os.path.dirname(__file__)
     if (destination := directory / TOML_DEFAULT_NAME).exists():
         raise FileExistsError(f'{destination!s} already exists. Remove it, rename it, or specify a path with `--file`.')
     with open(saved_to := directory / TOML_DEFAULT_NAME, 'w', encoding='utf-8') as f:
@@ -45,22 +46,28 @@ def make_default(directory: Path) -> Path:
 
 
 def find_current() -> Path | None:
+    installed = Path(os.path.dirname(__file__)) / 'htmspell.toml'
     local = Path(os.getcwd()) / 'htmspell.toml'
     if local.exists():
         return local
-    if (env_defined := Path(os.environ.get(ENV_KEY))).exists():
+    elif (env_defined := Path(os.environ.get(ENV_KEY))).exists():
         return env_defined
+    elif installed.exists():
+        return installed
     return None
 
 
 def load_config(from_path: Path = None) -> dict:
     if from_path is None:
         cwd = Path(os.getcwd())
-        default_toml_path = cwd / TOML_DEFAULT_NAME
-        if not default_toml_path.exists():
-            load_path = Path(os.environ[ENV_KEY])
+        if (local_toml_path := cwd / TOML_DEFAULT_NAME).exists():
+            load_path = local_toml_path
+        elif (installed_toml_path := Path(os.path.dirname(__file__)) / TOML_DEFAULT_NAME).exists():
+            load_path = installed_toml_path
+        elif (env_toml_path := Path(os.environ.get(ENV_KEY))).exists():
+            load_path = env_toml_path
         else:
-            load_path = default_toml_path
+            raise FileNotFoundError("No path to configuration found.")
     else:
         load_path = from_path
 
