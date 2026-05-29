@@ -116,7 +116,7 @@ class SpellChecker:
                 words = utils.tokenize(sp.text)
                 dehyphenated = utils.dehyphenate(words, **options)
                 caps_filtered = utils.ignore_capitalized(dehyphenated, **options)
-                deencliticized = utils.remove_enclitics(caps_filtered, **options)
+                deencliticized = utils.handle_enclitics(caps_filtered, **options)
                 cleaned = utils.clean(deencliticized)
                 for word in filter(bool, cleaned):
                     if (result := self.check_word(word)) in self.problems:

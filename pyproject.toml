@@ -7,4 +7,5 @@ dependencies = [
     "beautifulsoup4>=4.14.3",
     "nuitka[all]>=4.1.2",
     "pyperclip==1.11.0",
+    "stop-words>=2025.11.4",
 ]

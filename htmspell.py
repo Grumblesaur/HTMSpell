@@ -1,6 +1,8 @@
 import argparse
 from collections import Counter
 
+import stop_words
+
 import configuration
 import sys
 from pathlib import Path
@@ -22,17 +24,18 @@ def qprint(*args, **kwargs):
 def main():
     parser = cli.make_argument_parser()
     namespace = parser.parse_args()
+    config = configuration.load_config(namespace.config if hasattr(namespace, 'config') else None)
     match namespace.command:
         case 'config':
             configure(namespace)
         case 'check':
-            check(namespace)
+            check(namespace, config)
         case 'count':
             count(namespace)
         case 'show':
             show(namespace)
         case 'corpus':
-            corpus(namespace)
+            corpus(namespace, config)
         case _:
             raise Exception('unknown subcommand: ', namespace.command)
 
@@ -81,8 +84,7 @@ def dictionary_menu(dictionaries: list[dict]) -> list[Path]:
     return [menu[name] for name in selected_names]
 
 
-def check(namespace: argparse.Namespace):
-    config = configuration.load_config(namespace.config)
+def check(namespace: argparse.Namespace, config: dict):
     if namespace.elements:
         elements = namespace.elements.split(',')
     else:
@@ -158,10 +160,12 @@ def count(namespace: argparse.Namespace):
     return
 
 
-def corpus(namespace: argparse.Namespace):
+def corpus(namespace: argparse.Namespace, config: dict):
     overall_usage = Counter()
     options = {'dehyphenate': namespace.dehyphenate,
-               'ignore_enclitics': namespace.ignore_enclitics}
+               'ignore_enclitics': namespace.ignore_enclitics,
+               'split_enclitics': namespace.split_enclitics,
+               'enclitics': namespace.enclitics or config.get('cleaning', {}).get('enclitics', [])}
     predicate = lambda c: c != 0
     if namespace.count_greater_than is not None:
         predicate = lambda c: c > namespace.count_greater_than
@@ -172,16 +176,23 @@ def corpus(namespace: argparse.Namespace):
     if namespace.count_greater_equal is not None:
         predicate = lambda c: c >= namespace.count_greater_equal
 
-    print("Word usage for:")
+    print("Word usage for:", end=' ')
     for filename in namespace.filenames:
         d = DOM(filename)
         tokens = d.words(**options)
         cleaned = utils.clean(tokens)
-        enclitic_normalized = utils.remove_enclitics(cleaned, **options)
+        enclitic_normalized = utils.handle_enclitics(cleaned, **options)
         casefolded = utils.casefolded(enclitic_normalized)
         usage = Counter(casefolded)
         overall_usage += usage
         print(filename)
+
+    ignore = object()
+    if namespace.drop_stopwords:
+        stopwords = stop_words.get_stop_words(namespace.language)
+        for stopword in stopwords:
+            overall_usage.pop(stopword, ignore)
+
     print("Frequencies:")
     for word, freq in overall_usage.most_common():
         if predicate(freq):

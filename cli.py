@@ -1,5 +1,6 @@
 import argparse
 import re
+import locale
 from pathlib import Path
 
 
@@ -71,10 +72,21 @@ def make_argument_parser():
     # Corpus linguistics subparser
     corpus_parser = subparsers.add_parser('corpus', help="Check word counts for corpus linguistics purposes")
     corpus_parser.add_argument('filenames', nargs='+', type=Path)
+    corpus_parser.add_argument('-c', '--config', nargs=1, action="store", type=Path)
     corpus_parser.add_argument('-d', '--dehyphenate', action='store_true',
                                help="Count hyphenated words as their component parts")
-    corpus_parser.add_argument('-k', '--ignore-enclitics', action='store_true',
+    corpus_parser.add_argument('-s', '--enclitics', action="store",
+                            help="Override config file enclitics with comma-separated strings.")
+    corpus_enclitics = corpus_parser.add_mutually_exclusive_group(required=False)
+    corpus_enclitics.add_argument('-k', '--ignore-enclitics', action='store_true',
                                help="Count lemmas with enclitics stripped off.")
+    corpus_enclitics.add_argument('-p', '--split-enclitics', action='store_true',
+                               help="Count enclitics as separate lemmas.")
+    corpus_parser.add_argument('-z', '--drop-stopwords', action="store_true",
+                               help="Ignore common words such as 'the', 'and', 'in', etc.")
+    corpus_parser.add_argument('-t', '--language', type=str,
+                               default=locale.getlocale()[0].split('_')[0],
+                               help="ISO-639-1 language code (or full name) of desired language for stopwords")
     corpus_thresholds = corpus_parser.add_mutually_exclusive_group()
     corpus_thresholds.add_argument('-g', '--count-greater-than', type=int,
                                    help='Show all words used more than `M` times')
@@ -84,8 +96,6 @@ def make_argument_parser():
                                    help="Show all words used less than `M` times")
     corpus_thresholds.add_argument('-L', '--count-less-equal', type=int,
                                    help="Show all words used no more than `M` times")
-
-
 
     # Element lookup subparser
     show_parser = subparsers.add_parser('show', help="Display a portion of the DOM by element type and index")

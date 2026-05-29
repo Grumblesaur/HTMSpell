@@ -59,8 +59,7 @@ def find_current() -> Path | None:
 
 def load_config(from_path: Path = None) -> dict:
     if from_path is None:
-        cwd = Path(os.getcwd())
-        if (local_toml_path := cwd / TOML_DEFAULT_NAME).exists():
+        if (local_toml_path := Path(os.getcwd()) / TOML_DEFAULT_NAME).exists():
             load_path = local_toml_path
         elif (installed_toml_path := Path(os.path.dirname(__file__)) / TOML_DEFAULT_NAME).exists():
             load_path = installed_toml_path

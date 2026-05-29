@@ -16,20 +16,34 @@ def dehyphenate(tokens: Iterable[str], **kwargs) -> Iterable[str]:
             yield token
 
 
-def remove_enclitics(tokens: Iterable[str], **kwargs) -> Iterable[str]:
-    if not kwargs.get('ignore_enclitics', False):
-        yield from tokens
-        return
+def handle_enclitics(tokens: Iterable[str], **kwargs) -> Iterable[str]:
     if not (enclitics := kwargs.get('enclitics')):
+        print("no enclitics found?")
         yield from tokens
         return
-    for token in tokens:
-        for enc in enclitics:
-            if token.endswith(enc):
-                yield token.removesuffix(enc)
-                break
-        else:
-            yield token
+
+    if kwargs.get('split_enclitics'):
+        for token in tokens:
+            for enc in enclitics:
+                if token.endswith(enc):
+                    yield token.removesuffix(enc)
+                    yield enc
+                    break
+            else:
+                yield token
+        return
+
+    if kwargs.get('ignore_enclitics', False):
+        for token in tokens:
+            for enc in enclitics:
+                if token.endswith(enc):
+                    yield token.removesuffix(enc)
+                    break
+            else:
+                yield token
+        return
+
+    yield from tokens
 
 def ignore_capitalized(tokens: Iterable[str], **kwargs) -> Iterable[str]:
     if not kwargs.get('ignore_capitalized', False):
@@ -41,7 +55,7 @@ def ignore_capitalized(tokens: Iterable[str], **kwargs) -> Iterable[str]:
         yield token
 
 
-STRIPPABLE = string.punctuation + " ”“’‘"
+STRIPPABLE = string.punctuation + " ‽”“’‘"
 def clean(tokens: Iterable[str]) -> Iterable[str]:
     return (t.strip(STRIPPABLE) for t in tokens)
 
