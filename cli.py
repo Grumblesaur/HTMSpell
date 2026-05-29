@@ -55,6 +55,8 @@ def make_argument_parser():
                              " When not selected, interactive mode is used.")
     using_group.add_argument('-a', '--all', '--using-all', action='store_true',
                              help='Use all dictionaries specified by config file.')
+    using_group.add_argument('-n', '--none', '--using-none', action="store_true",
+                             help='Use no dictionaries but the main one.')
 
     # Word count subparser
     count_parser = subparsers.add_parser('count',

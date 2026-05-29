@@ -92,6 +92,8 @@ def check(namespace: argparse.Namespace, config: dict):
     dictionaries = [main_dictionary_path(config)]
     if namespace.all:
         dictionaries.extend(d['path'] for d in config['dictionaries'])
+    elif namespace.none:
+        pass
     elif namespace.using is None:
         dictionaries.extend(dictionary_menu(config['dictionaries']) if 'dictionaries' in config else [])
     else:
