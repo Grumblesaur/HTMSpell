@@ -43,7 +43,7 @@ def ignore_capitalized(tokens: Iterable[str], **kwargs) -> Iterable[str]:
 
 
 def clean(tokens: Iterable[str]) -> Iterable[str]:
-    return (t.strip(string.punctuation+' ') for t in tokens)
+    return (t.strip(string.punctuation+' “”‘’') for t in tokens)
 
 
 def parse_selection(s: str) -> list[int]:

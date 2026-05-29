@@ -27,7 +27,7 @@ class EntryMatch(StrEnum):
         return ""
 
     @classmethod
-    def from_string(cls, option: str) -> EntryMatch:
+    def from_string(cls, option: str) -> Self:
         if option.casefold() == 'notfound':
             return cls.NotFound
         if option.casefold() == 'exact':
@@ -41,7 +41,7 @@ class EntryMatch(StrEnum):
         raise ValueError(f'unrecognized string: {option}')
 
     @classmethod
-    def parse_problems(cls, problems: str) -> set[EntryMatch]:
+    def parse_problems(cls, problems: str) -> set[Self]:
         return {cls.from_string(p) for p in problems.split(',')}
 
 @functools.total_ordering
