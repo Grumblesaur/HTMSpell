@@ -24,18 +24,17 @@ def qprint(*args, **kwargs):
 def main():
     parser = cli.make_argument_parser()
     namespace = parser.parse_args()
-    config = configuration.load_config(namespace.config if hasattr(namespace, 'config') else None)
     match namespace.command:
         case 'config':
             configure(namespace)
         case 'check':
-            check(namespace, config)
+            check(namespace, configuration.load_config(namespace.config if hasattr(namespace, 'config') else None))
         case 'count':
             count(namespace)
         case 'show':
             show(namespace)
         case 'corpus':
-            corpus(namespace, config)
+            corpus(namespace, configuration.load_config(namespace.config if hasattr(namespace, 'config') else None))
         case _:
             raise Exception('unknown subcommand: ', namespace.command)
 
